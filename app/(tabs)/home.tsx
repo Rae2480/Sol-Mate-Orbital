@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-export default function HomeScreen() {
+export default function ChatScreen() {
   return (
     <View>
-      <Text>Home Screen</Text>
+      <Text>chat Screen</Text>
     </View>
   );
 }
