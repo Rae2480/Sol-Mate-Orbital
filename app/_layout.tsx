@@ -14,6 +14,11 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Atop: require('../assets/fonts/Atop-R9903.ttf'),
+    Love: require('../assets/fonts/LoveDays.ttf'),
+    Pacifico: require('../assets/fonts/Pacifico.ttf'),
+    Montserrat: require('../assets/fonts/Montserrat-Regular.ttf'),
+    MontserratB: require('../assets/fonts/Montserrat-Bold.ttf'),
   });
 
   useEffect(() => {
@@ -30,7 +35,10 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="LookingFor" options={{ headerShown: false }} />
+        <Stack.Screen name="ProjectMate" options={{ headerShown: false }} />
+        <Stack.Screen name="Roommates" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)/index" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
     </ThemeProvider>

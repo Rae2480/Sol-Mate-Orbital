@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../config/firebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebaseConfig';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -15,12 +16,23 @@ const LoginScreen: React.FC = () => {
     try {
       if (isSignup) {
         await createUserWithEmailAndPassword(auth, email, password);
+        if (auth.currentUser) {
+          await setDoc(doc(db, 'users', auth.currentUser.uid), { initialSetupComplete: false });
+        }
         setIsSignup(false); // Switch back to login mode after successful signup
         Alert.alert('Success', 'Account created successfully!');
+        router.replace('LookingFor'); // Navigate to LookingFor screen after sign-up
       } else {
         await signInWithEmailAndPassword(auth, email, password);
-        // Navigate to the tabs screen after successful login
-        router.replace('/(tabs)');
+        if (auth.currentUser) {
+          const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+          const userData = userDoc.data();
+          if (userData && userData.initialSetupComplete) {
+            router.replace('(tabs)/index'); // Navigate directly to the main tab screen if setup is complete
+          } else {
+            router.replace('LookingFor'); // Navigate to LookingFor screen if setup is not complete
+          }
+        }
       }
     } catch (error: any) {
       setError(error.message);
@@ -74,21 +86,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    backgroundColor: '##FFC5D3',
+    backgroundColor: '#FFCFE7',
   },
   logo: {
     width: 200,
-    height: 170,
+    height: 180,
     marginBottom: 20,
   },
   appTitle: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#C63B85',
+    fontSize: 65,
+    fontFamily: 'Atop',
+    color: '#CF297E',
     marginBottom: 10,
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#555',
     marginBottom: 30,
   },
@@ -108,7 +120,7 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '40%',
-    backgroundColor: '#C63B85',
+    backgroundColor: '#CF297E',
     paddingVertical: 15,
     borderRadius: 10,
     marginBottom: 20,
