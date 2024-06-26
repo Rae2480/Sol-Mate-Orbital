@@ -3,16 +3,19 @@ import { Image, ImageBackground, TextInput, Alert } from "react-native";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { heightPercentageToDP, widthPercentageToDP } from "react-native-responsive-screen";
-import { collection, addDoc } from "firebase/firestore"; 
+import { doc, setDoc, getDoc } from "firebase/firestore"; 
 import { db } from "../config/firebaseConfig"; // Adjust the path as needed
 
 const LookingFor = () => {
     const navigation = useNavigation();
     const [name, setName] = React.useState('');
 
+    const userId = 'uniqueUserID'; // Replace with the actual user ID
+
     const handleButtonPress = async (selection) => {
         try {
-            await addDoc(collection(db, "userSelections"), {
+            const userDocRef = doc(db, "userSelections", userId);
+            await setDoc(userDocRef, {
                 name: name,
                 selection: selection,
                 timestamp: new Date(),
@@ -24,6 +27,23 @@ const LookingFor = () => {
         }
     };
 
+    const fetchUserData = async () => {
+        try {
+            const userDocRef = doc(db, "userSelections", userId);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                setName(userData.name);
+            }
+        } catch (e) {
+            console.error("Error fetching document: ", e);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchUserData();
+    }, []);
+
     return (
         <ImageBackground source={require("../assets/images/Whatareyoulookingfor.png")} style={styles.signUp}>
             <View style={styles.topContainer}>
@@ -31,7 +51,7 @@ const LookingFor = () => {
             </View>
             <View style={styles.container}>
                 <View style={styles.nameContainer}>
-                    <Image style={styles.icon} contentFit="cover" source={require("../assets/images/swanlogo.png")} />
+                    <Image style={styles.icon} source={require("../assets/images/swanlogo.png")} />
                     <Text style={styles.sectionTitle}>What is your name?</Text>
                 </View>
                 <TextInput
@@ -43,19 +63,19 @@ const LookingFor = () => {
                 <Text style={styles.sectionTitle}>What are you looking for?</Text>
                 <View style={{ gap: 10, marginTop: -10 }}>
                     <TouchableOpacity onPress={() => handleButtonPress("Friends")} activeOpacity={0.7} style={styles.buttonContainer}>
-                        <Image style={styles.buttonBackgroundImage} contentFit="cover" source={require("../assets/images/Rectangle9.png")} />
+                        <Image style={styles.buttonBackgroundImage} source={require("../assets/images/Rectangle9.png")} />
                         <Text style={styles.buttonText}>Friends</Text>
-                        <Image style={styles.friendsIcon} contentFit="cover" source={require("../assets/images/Frame.png")} />
+                        <Image style={styles.friendsIcon} source={require("../assets/images/Frame.png")} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleButtonPress("Roommates")} activeOpacity={0.7} style={styles.buttonContainer}>
-                        <Image style={styles.buttonBackgroundImage} contentFit="cover" source={require("../assets/images/Group20.png")} />
+                        <Image style={styles.buttonBackgroundImage} source={require("../assets/images/Group20.png")} />
                         <Text style={styles.buttonText}>Roommates</Text>
-                        <Image style={styles.roommatesIcon} contentFit="cover" source={require("../assets/images/Vector.png")} />
+                        <Image style={styles.roommatesIcon} source={require("../assets/images/Vector.png")} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleButtonPress("ProjectMate")} activeOpacity={0.7} style={styles.buttonContainer}>
-                        <Image style={styles.buttonBackgroundImage} contentFit="cover" source={require("../assets/images/Group21.png")} />
+                        <Image style={styles.buttonBackgroundImage} source={require("../assets/images/Group21.png")} />
                         <Text style={styles.buttonText}>Project Mate</Text>
-                        <Image style={styles.projectMateIcon} contentFit="cover" source={require("../assets/images/Frame1.png")} />
+                        <Image style={styles.projectMateIcon} source={require("../assets/images/Frame1.png")} />
                     </TouchableOpacity>
                 </View>
             </View>

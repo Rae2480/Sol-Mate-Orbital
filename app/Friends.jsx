@@ -1,25 +1,37 @@
 import * as React from "react";
-import { Image, ImageBackground, Alert } from "react-native";
+import { Image, ImageBackground, ScrollView, Alert } from "react-native";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { heightPercentageToDP, widthPercentageToDP } from "react-native-responsive-screen";
 import RadioButton from "../components/RadioButton";
-import { collection, addDoc } from "firebase/firestore"; 
+import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebaseConfig"; // Adjust the path as needed
 
 const Friends = () => {
     const navigation = useNavigation();
-    const [selectedOption, setSelectedOption] = React.useState('option1');
-    const [selectedOption2, setSelectedOption2] = React.useState('option1');
-    const [selectedImportant, setSelectedImportant] = React.useState('');
-    const selectedColor = "#f08080"; // Define your selected color
+    const userId = 'uniqueUserID'; // Replace with the actual user ID
+    const [selectedOptions, setSelectedOptions] = React.useState({
+        sportsFitness: 'Sports and fitness',
+        sportsFitnessAccept: [],
+        sportsFitnessImportance: '',
+        socialInteraction: 'Prefer to meet frequently',
+        socialInteractionAccept: [],
+        socialInteractionImportance: '',
+        groupSize: 'Prefer one-on-one interactions',
+        groupSizeAccept: [],
+        groupSizeImportance: '',
+        introvertExtrovert: 'Introvert',
+        introvertExtrovertAccept: [],
+        introvertExtrovertImportance: '',
+        communicationStyle: 'Direct and straightforward',
+        communicationStyleAccept: [],
+        communicationStyleImportance: ''
+    });
 
     const handleSaveData = async () => {
         try {
-            await addDoc(collection(db, "friendsResponses"), {
-                activityStyle: selectedOption,
-                acceptableActivityStyle: selectedOption2,
-                importance: selectedImportant,
+            await setDoc(doc(db, "friendsPreferences", userId), {
+                ...selectedOptions,
                 timestamp: new Date(),
             });
             Alert.alert("Success", "Your responses have been saved!");
@@ -30,95 +42,251 @@ const Friends = () => {
         }
     };
 
+    const fetchData = async () => {
+        try {
+            const docRef = doc(db, "friendsPreferences", userId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setSelectedOptions(docSnap.data());
+            }
+        } catch (e) {
+            console.error("Error fetching document: ", e);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleCheckboxChange = (key, value) => {
+        setSelectedOptions(prevState => ({
+            ...prevState,
+            [key]: prevState[key].includes(value) ? prevState[key].filter(item => item !== value) : [...prevState[key], value]
+        }));
+    };
+
     return (
         <ImageBackground source={require("../assets/images/Friends1.png")} style={styles.signUp}>
-            <View style={styles.topContainer}>
-                <Text style={{ color: "white", fontSize: widthPercentageToDP(5) }}>Answering Questions</Text>
-            </View>
-            <View style={styles.container}>
-                <View style={{ alignItems: "center", gap: widthPercentageToDP(2), marginTop: heightPercentageToDP(5) }}>
-                    <Text style={{ fontWeight: "bold", fontSize: widthPercentageToDP(6) }}>What activities do you enjoy with friends?</Text>
+            <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                <View style={styles.topContainer}>
+                    <Text style={{ color: "white", fontSize: widthPercentageToDP(5) }}>Answering Questions</Text>
                 </View>
+                <View style={styles.container}>
+                    <Text style={styles.mainTitle}>Friend Preferences:</Text>
 
-                <View>
-                    <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Your answer:</Text>
+                    <Text style={styles.subTitle}>Hobbies</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
                     <View style={styles.answerContainer}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "70%" }}>Outdoor adventures</Text>
-                            <RadioButton
-                                selected={selectedOption === 'option1'}
-                                onPress={() => setSelectedOption('option1')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "90%" }}>Indoor games and activities</Text>
-                            <RadioButton
-                                selected={selectedOption === 'option2'}
-                                onPress={() => setSelectedOption('option2')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
+                        {['Sports and fitness', 'Reading and writing', 'Arts and crafts', 'Gaming', 'Other (specify)'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.sportsFitness === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, sportsFitness: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
                     </View>
-                </View>
-
-                <View>
-                    <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Answer you’ll accept:</Text>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
                     <View style={styles.acceptableAnswerContainer}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "70%" }}>Outdoor adventures</Text>
-                            <RadioButton
-                                selected={selectedOption2 === 'option1'}
-                                onPress={() => setSelectedOption2('option1')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "90%" }}>Indoor games and activities</Text>
-                            <RadioButton
-                                selected={selectedOption2 === 'option2'}
-                                onPress={() => setSelectedOption2('option2')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "70%" }}>Both</Text>
-                            <RadioButton
-                                selected={selectedOption2 === 'both'}
-                                onPress={() => setSelectedOption2('both')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
+                        {['Sports and fitness', 'Reading and writing', 'Arts and crafts', 'Gaming', 'Others'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.sportsFitnessAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('sportsFitnessAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
                     </View>
-                </View>
-
-                <View style={{ gap: 2 }}>
-                    <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Importance:</Text>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
                     <View style={styles.importantButtonContainer}>
-                        <TouchableOpacity onPress={() => setSelectedImportant("A little")} style={[styles.importButton, { backgroundColor: selectedImportant === "A little" ? "#f08080" : "transparent" }]}>
-                            <Text style={{ color: "#4f000b" }}>A little</Text>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, sportsFitnessImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.sportsFitnessImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.sportsFitnessImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Social Interaction</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
+                    <View style={styles.answerContainer}>
+                        {['Prefer to meet frequently', 'Prefer occasional meetups', 'Prefer online interactions'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.socialInteraction === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, socialInteraction: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Prefer to meet frequently', 'Prefer occasional meetups', 'Prefer online interactions'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.socialInteractionAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('socialInteractionAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, socialInteractionImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.socialInteractionImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.socialInteractionImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Group Size</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
+                    <View style={styles.answerContainer}>
+                        {['Prefer one-on-one interactions', 'Prefer small groups (3-5 people)', 'Enjoy large gatherings'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.groupSize === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, groupSize: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Prefer one-on-one interactions', 'Prefer small groups (3-5 people)', 'Enjoy large gatherings'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.groupSizeAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('groupSizeAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, groupSizeImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.groupSizeImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.groupSizeImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Introvert/Extrovert</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
+                    <View style={styles.answerContainer}>
+                        {['Introvert', 'Ambivert', 'Extrovert'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.introvertExtrovert === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, introvertExtrovert: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Introvert', 'Ambivert', 'Extrovert'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.introvertExtrovertAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('introvertExtrovertAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, introvertExtrovertImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.introvertExtrovertImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.introvertExtrovertImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Communication Style</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
+                    <View style={styles.answerContainer}>
+                        {['Direct and straightforward', 'Thoughtful and considerate', 'Humorous and light-hearted'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.communicationStyle === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, communicationStyle: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Direct and straightforward', 'Thoughtful and considerate', 'Humorous and light-hearted'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.communicationStyleAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('communicationStyleAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, communicationStyleImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.communicationStyleImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.communicationStyleImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View style={styles.bottomButtonContainer}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={{ gap: 5, alignItems: "center" }}>
+                            <Image style={styles.backIcon} source={require("../assets/images/back.png")} />
+                            <Text style={{ fontSize: widthPercentageToDP(4) }}>Previous</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setSelectedImportant("Somewhat")} style={[styles.importButton, { backgroundColor: selectedImportant === "Somewhat" ? "#f08080" : "transparent" }]}>
-                            <Text style={{ color: "#4f000b" }}>Somewhat</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setSelectedImportant("Very")} style={[styles.importButton, { backgroundColor: selectedImportant === "Very" ? "#f08080" : "transparent" }]}>
-                            <Text style={{ color: "#4f000b" }}>Very</Text>
+
+                        <TouchableOpacity onPress={handleSaveData} activeOpacity={0.7} style={{ gap: 5 }}>
+                            <Image style={styles.forwardIcon} source={require("../assets/images/forward.png")} />
+                            <Text style={{ fontSize: widthPercentageToDP(4) }}>Next</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-
-                <View style={styles.bottomButtonContainer}>
-                    <TouchableOpacity onPress={() => navigation.navigate("LookingFor")} activeOpacity={0.7} style={{ gap: 5, alignItems: "center" }}>
-                        <Image style={styles.backIcon} source={require("../assets/images/back.png")} />
-                        <Text style={{ fontSize: widthPercentageToDP(4) }}>Previous</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={handleSaveData} activeOpacity={0.7} style={{ gap: 5 }}>
-                        <Image style={styles.forwardIcon} source={require("../assets/images/forward.png")} />
-                        <Text style={{ fontSize: widthPercentageToDP(4) }}>Skip</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+            </ScrollView>
         </ImageBackground>
     );
 };
@@ -135,83 +303,102 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         backgroundColor: "white",
     },
-    answerContainer: {
-        gap: 5,
-        paddingHorizontal: widthPercentageToDP(7),
-        paddingVertical: widthPercentageToDP(3.5),
-        height: heightPercentageToDP(14),
-        borderWidth: 2,
-        borderColor: "#f08080",
-        borderRadius: 21,
-        backgroundColor: "#fbc4ab",
-        shadowColor: "#9B004F",
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.45,
-        shadowRadius: 2.50,
-        elevation: 3,
-    },
-    acceptableAnswerContainer: {
-        gap: 5,
-        paddingHorizontal: widthPercentageToDP(5),
-        paddingVertical: widthPercentageToDP(3.5),
-        height: heightPercentageToDP(17), 
-        borderWidth: 2,
-        borderColor: "#f08080",
-        borderRadius: 21,
-        backgroundColor: "#fbc4ab",
-        shadowColor: "#9B004F",
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.45,
-        shadowRadius: 2.50,
-        elevation: 3,
+    scrollViewContent: {
+        paddingBottom: 20,
     },
     topContainer: {
-        height: heightPercentageToDP(10),
-        backgroundColor: "#FF8DB3",
+        height: heightPercentageToDP(15),
+        backgroundColor: "#FF5FB1",
         alignItems: "center",
         justifyContent: "flex-end",
-        paddingBottom: 5,
+        paddingBottom: 15,
     },
     container: {
-        gap: widthPercentageToDP(10),
+        padding: widthPercentageToDP(5),
         backgroundColor: "rgba(244,244,244,0.9)",
-        height: heightPercentageToDP(80),
         borderRadius: widthPercentageToDP(5),
-        marginTop: heightPercentageToDP(2),
         marginHorizontal: widthPercentageToDP(5),
-        paddingHorizontal: widthPercentageToDP(5),
+        marginTop: heightPercentageToDP(2),
+    },
+    mainTitle: {
+        fontSize: widthPercentageToDP(10),
+        fontFamily: 'Montserrat',
+        fontWeight: "bold",
+        marginBottom: heightPercentageToDP(2),
+    },
+    subTitle: {
+        fontSize: widthPercentageToDP(6),
+        fontWeight: "bold",
+        marginVertical: heightPercentageToDP(2),
     },
     sectionTitle: {
-        fontSize: 17,
+        fontSize: widthPercentageToDP(5),
+        marginVertical: heightPercentageToDP(1),
+    },
+    answerContainer: {
+        gap: 15,
+        paddingHorizontal: widthPercentageToDP(5),
+        paddingVertical: widthPercentageToDP(3.5),
+        borderWidth: 2,
+        borderColor: "#fbc4ab",
+        borderRadius: 21,
+        backgroundColor: "#FFDAB9",
+        shadowColor: "#9B004F",
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.45,
+        shadowRadius: 2.50,
+        elevation: 3,
+        marginBottom: heightPercentageToDP(2),
+    },
+    acceptableAnswerContainer: {
+        gap: 15,
+        paddingHorizontal: widthPercentageToDP(5),
+        paddingVertical: widthPercentageToDP(3.5),
+        borderWidth: 2,
+        borderColor: "#F08080",
+        borderRadius: 21,
+        backgroundColor: "#fbc4ab",
+        shadowColor: "#9B004F",
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.45,
+        shadowRadius: 2.50,
+        elevation: 3,
+        marginBottom: heightPercentageToDP(2),
+    },
+    optionRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
     },
     importantButtonContainer: {
-        backgroundColor: "#fbc4ab",
+        backgroundColor: "#FF8DB3",
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        borderColor: "#F08080",
+        borderColor: "#CF297E",
         borderWidth: 2,
         height: heightPercentageToDP(5),
+        marginBottom: heightPercentageToDP(2),
     },
     importButton: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        borderRightColor: "#F08080",
+        borderRightColor: "#CF297E",
         borderRightWidth: 1,
         height: "100%",
     },
     bottomButtonContainer: {
-        marginTop: heightPercentageToDP(-3.5),
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
+        marginTop: heightPercentageToDP(2),
     },
     backIcon: {
         height: 18,

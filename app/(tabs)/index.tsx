@@ -1,32 +1,75 @@
-import { Image, StyleSheet, TextInput, View, Text, Button, Alert, TouchableOpacity } from 'react-native';
-import React, { useState, useEffect } from 'react';
-import Slider from '@react-native-community/slider';
-import { collection, addDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/config/firebaseConfig';
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import * as React from 'react';
+import {
+  Image,
+  ImageBackground,
+  ScrollView,
+  Alert, // Import Alert from React Native
+  TextInput,
+  TouchableOpacity,
+  Text,
+  View,
+  StyleSheet,
+  SafeAreaView,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebaseConfig'; // Ensure this path is correct
+import FeatherIcon from 'react-native-vector-icons/Feather';
 
-export default function HomeScreen() {
-  const [name, setName] = useState('');
-  const [age, setAge] = useState(25);
-  const [image, setImage] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState(true);
+interface UserData {
+  name: string;
+  profilePicture: string | null;
+  birthday: Date;
+  bio: string;
+  lookingFor: string;
+}
 
-  const handleSave = async () => {
+const Profile = () => {
+  const navigation = useNavigation();
+  const [userData, setUserData] = React.useState<UserData>({
+    name: '',
+    profilePicture: null,
+    birthday: new Date(),
+    bio: '',
+    lookingFor: ''
+  });
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+
+  const fetchData = async () => {
     try {
-      await setDoc(doc(db, 'users', 'userID'), { // Use the appropriate user ID
-        name,
-        age,
-        image
+      const userId = 'uniqueUserID'; // Replace with the actual user ID
+      const docRef = doc(db, 'userSelections', userId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserData(prevState => ({
+          ...prevState,
+          name: data.name,
+          lookingFor: data.selection
+        }));
+      }
+    } catch (e) {
+      console.error('Error fetching document: ', e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleSaveData = async () => {
+    try {
+      const userId = 'uniqueUserID'; // Replace with the actual user ID
+      await setDoc(doc(db, 'userProfiles', userId), {
+        ...userData,
+        timestamp: new Date().toISOString(), // Save as ISO string to avoid object issue
       });
-      setEditMode(false);
-      Alert.alert('Success!', 'Your profile has been updated');
+      Alert.alert('Success', 'Your profile has been saved!');
     } catch (e) {
       console.error('Error adding document: ', e);
-      Alert.alert('Error', 'Failed to save data');
+      Alert.alert('Error', 'Failed to save your profile.');
     }
   };
 
@@ -37,148 +80,180 @@ export default function HomeScreen() {
       return;
     }
 
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [4, 3],
       quality: 1,
     });
 
-    if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-      setImage(pickerResult.assets[0].uri);
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setUserData({ ...userData, profilePicture: result.assets[0].uri });
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const docRef = doc(db, 'users', 'userID'); // Use the appropriate user ID
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setName(data.name);
-        setAge(data.age);
-        setImage(data.image);
-        setEditMode(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const handleDateChange = (selectedDate: Date) => {
+    setShowDatePicker(false);
+    setUserData({ ...userData, birthday: selectedDate });
+  };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#E87094', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Hello!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <View style={styles.inputContainer}>
-        {editMode ? (
-          <>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Enter your name"
-              value={name}
-              onChangeText={setName}
+    <SafeAreaView style={styles.container}>
+      <ImageBackground
+        source={require('@/assets/images/whitepastel.png')}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
+      >
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <View style={styles.profileImageContainer}>
+            <Image
+              source={userData.profilePicture ? { uri: userData.profilePicture } : require('@/assets/images/placeholderpp.jpg')}
+              style={styles.profileImage}
+              resizeMode="cover"
             />
-            <View style={styles.sliderContainer}>
-              <Text style={styles.sliderLabel}>Age: {age}</Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={12}
-                maximumValue={99}
-                step={1}
-                value={age}
-                onValueChange={setAge}
-              />
-            </View>
-            <TouchableOpacity onPress={pickImage}>
-              <View style={styles.imagePicker}>
-                {image ? (
-                  <Image source={{ uri: image }} style={styles.image} />
-                ) : (
-                  <Text>Select an Image</Text>
-                )}
-              </View>
+            <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
+              <FeatherIcon name="edit-3" color="#FFF" size={20} />
             </TouchableOpacity>
-            <Button title="Save" onPress={handleSave} />
-          </>
-        ) : (
-          <>
-            <Text>Name: {name}</Text>
-            <Text>{}</Text>
-            <Text>Age: {age}</Text>
-            <Text>{}</Text>
-            {image && <Image source={{ uri: image }} style={styles.displayImage} />}
-            <Button title="Edit" onPress={() => setEditMode(true)} />
-          </>
-        )}
-      </View>
-    </ParallaxScrollView>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Hi, {userData.name}!</Text>
+          </View>
+
+          <View style={styles.section}>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
+              <Text style={styles.sectionTitle}>Birthday</Text>
+              <Text>{userData.birthday.toDateString()}</Text>
+            </TouchableOpacity>
+            <DateTimePickerModal
+              isVisible={showDatePicker}
+              mode="date"
+              onConfirm={handleDateChange}
+              onCancel={() => setShowDatePicker(false)}
+              date={userData.birthday}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Bio</Text>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              placeholder="Write a short bio"
+              value={userData.bio}
+              onChangeText={(text) => setUserData({ ...userData, bio: text })}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Looking For:</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('LookingFor')} style={styles.editButton}>
+              <Text style={styles.sectionText}>{userData.lookingFor}</Text>
+              <FeatherIcon name="edit-3" color="blue" size={20} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity onPress={handleSaveData} style={styles.saveProfileButton}>
+            <Text style={styles.saveButtonText}>Save Profile</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </ImageBackground>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  scrollViewContent: {
+    padding: 20,
+  },
+  backgroundImage: {
+    flex: 1,
+    resizeMode: 'cover',
+    justifyContent: 'center',
+  },
+  backgroundImageStyle: {
+    opacity: 0.25,
+  },
+  profileImageContainer: {
+    position: 'relative',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    overflow: 'hidden',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 100,
+  },
+  editIcon: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: '#007bff',
+    padding: 6,
+    borderRadius: 15,
+    zIndex: 1,
+  },
+  section: {
+    marginBottom: 20,
+    paddingHorizontal: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  sectionText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  inputContainer: {
-    padding: 16,
+  datePickerButton: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
   },
   textInput: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
     padding: 8,
-    marginBottom: 16,
+    width: '100%',
   },
-  sliderContainer: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
   },
-  sliderLabel: {
-    marginBottom: 8,
-  },
-  slider: {
-    height: 40,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-  imagePicker: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 8,
+  saveProfileButton: {
+    backgroundColor: '#FF5FB1',
+    padding: 15,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    height: 150,
-    width: 150, // Make it square
+    borderRadius: 5,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   image: {
-    width: '90%',
-    height: '90%',
-    borderRadius: 4,
-  },
-  displayImage: {
-    width: 300,
-    height: 300,
-    borderRadius: 4,
+    flex: 1,
+    height: undefined,
+    width: undefined,
   },
 });
 
-
+export default Profile;
