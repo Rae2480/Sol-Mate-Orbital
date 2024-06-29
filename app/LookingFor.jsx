@@ -62,11 +62,6 @@ const LookingFor = () => {
                 />
                 <Text style={styles.sectionTitle}>What are you looking for?</Text>
                 <View style={{ gap: 10, marginTop: -10 }}>
-                    <TouchableOpacity onPress={() => handleButtonPress("Friends")} activeOpacity={0.7} style={styles.buttonContainer}>
-                        <Image style={styles.buttonBackgroundImage} source={require("../assets/images/Rectangle9.png")} />
-                        <Text style={styles.buttonText}>Friends</Text>
-                        <Image style={styles.friendsIcon} source={require("../assets/images/Frame.png")} />
-                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleButtonPress("Roommates")} activeOpacity={0.7} style={styles.buttonContainer}>
                         <Image style={styles.buttonBackgroundImage} source={require("../assets/images/Group20.png")} />
                         <Text style={styles.buttonText}>Roommates</Text>
@@ -149,10 +144,6 @@ const styles = StyleSheet.create({
         fontSize: widthPercentageToDP(5),
         fontFamily: 'MontserratB',  // Replace with your desired font family
         fontWeight: 'bold'            // Adjust font weight as needed
-    },
-    friendsIcon: { 
-        height: 21, 
-        width: 20 
     },
     roommatesIcon: { 
         height: 20, 

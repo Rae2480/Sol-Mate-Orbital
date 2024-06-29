@@ -49,7 +49,6 @@ const LoginScreen: React.FC = () => {
         <TextInput
           style={styles.input}
           placeholder="Email"
-          placeholder="Username"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"

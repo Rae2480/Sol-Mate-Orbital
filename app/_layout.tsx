@@ -33,13 +33,12 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="LookingFor" options={{ headerShown: false }} />
         <Stack.Screen name="ProjectMate" options={{ headerShown: false }} />
         <Stack.Screen name="Roommates" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)/index" options={{ headerShown: false }} />
-        <Stack.Screen name="Friends" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
     </ThemeProvider>

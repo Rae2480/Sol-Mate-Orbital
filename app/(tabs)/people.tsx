@@ -1,102 +1,213 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Image, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/config/firebaseConfig';
+import { sortMatches } from '@/utils/algorithm';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-
-export default function TabTwoScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText> library
-          to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
-  );
+interface Preferences {
+  dailyRoutine: string;
+  dailyRoutineAccept: string[];
+  dailyRoutineImportance: string;
+  cleanliness: string;
+  cleanlinessAccept: string[];
+  cleanlinessImportance: string;
+  guestFrequency: string;
+  guestFrequencyAccept: string[];
+  guestFrequencyImportance: string;
+  noiseSensitivity: string;
+  noiseSensitivityAccept: string[];
+  noiseSensitivityImportance: string;
+  privacyNeeds: string;
+  privacyNeedsAccept: string[];
+  privacyNeedsImportance: string;
 }
 
+interface User {
+  id: string;
+  name: string;
+  bio: string;
+  photo: string;
+  preferences: Preferences;
+}
+
+interface MatchingPageProps {
+  currentUser: User;
+}
+
+const MatchingPage: React.FC<MatchingPageProps> = ({ currentUser }) => {
+  const navigation = useNavigation();
+  const [matches, setMatches] = useState<User[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchPotentialMatches = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
+
+        // Exclude current user from potential matches
+        const potentialMatches = users.filter(user => user.id !== currentUser.id);
+
+        // Sort matches based on compatibility
+        const sortedMatches = sortMatches(currentUser, potentialMatches);
+        setMatches(sortedMatches);
+      } catch (error) {
+        console.error("Error fetching users: ", error);
+      }
+    };
+
+    fetchPotentialMatches();
+  }, [currentUser]);
+
+  const handleYes = (match: User) => {
+    setSelectedMatch(match);
+    setShowModal(true);
+  };
+
+  const handleNo = () => {
+    // Proceed to next match
+    setMatches(matches.slice(1));
+  };
+
+  const handleSendMessage = () => {
+    if (selectedMatch) {
+      Alert.alert("Message sent!", `You have sent a message to ${selectedMatch.name}.`);
+      setShowModal(false);
+      setMatches(matches.slice(1));
+    }
+  };
+
+  if (matches.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.noMatchesText}>No more matches available</Text>
+      </View>
+    );
+  }
+
+  const currentMatch = matches[0];
+
+  return (
+    <View style={styles.container}>
+      <Image source={{ uri: currentMatch.photo }} style={styles.photo} />
+      <Text style={styles.name}>{currentMatch.name}</Text>
+      <Text style={styles.bio}>{currentMatch.bio}</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.noButton} onPress={handleNo}>
+          <Text style={styles.buttonText}>No</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.yesButton} onPress={() => handleYes(currentMatch)}>
+          <Text style={styles.buttonText}>Yes</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Modal
+        visible={showModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Send a message to {selectedMatch?.name}</Text>
+            <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+              <Text style={styles.sendButtonText}>Send Message</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
   },
-  titleContainer: {
+  photo: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    marginBottom: 20,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  bio: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  buttonContainer: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  noButton: {
+    backgroundColor: '#ff4d4d',
+    padding: 15,
+    borderRadius: 10,
+  },
+  yesButton: {
+    backgroundColor: '#4caf50',
+    padding: 15,
+    borderRadius: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+  noMatchesText: {
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  sendButton: {
+    backgroundColor: '#4caf50',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+  cancelButton: {
+    backgroundColor: '#ff4d4d',
+    padding: 10,
+    borderRadius: 5,
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontSize: 18,
   },
 });
+
+export default MatchingPage;
