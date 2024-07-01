@@ -4,9 +4,10 @@ import { useNavigation } from '@react-navigation/native';
 import { heightPercentageToDP, widthPercentageToDP } from 'react-native-responsive-screen';
 
 const chats = [
-  { id: '1', name: 'John Tan', message: 'Hello there!', image: require('@/assets/images/placeholderpp.jpg') },
-  { id: '2', name: 'Jane Lee', message: 'How are you?', image: require('@/assets/images/placeholderpp.jpg') },
-  { id: '3', name: 'Bobby Drakes', message: 'See you soon!', image: require('@/assets/images/placeholderpp.jpg') },
+  { id: '1', name: 'Bob', message: 'Hi Bob, we just matched!', image: require('@/assets/images/placeholderpp.jpg'), unread: false },
+  { id: '2', name: 'Denyse', message: 'Hi Denyse, we just matched!', image: require('@/assets/images/placeholderpp.jpg'), unread: false },
+  { id: '3', name: 'Adam', message: 'Hello there!', image: require('@/assets/images/placeholderpp.jpg'), unread: true },
+  { id: '4', name: 'Charlie', message: 'How are you?', image: require('@/assets/images/placeholderpp.jpg'), unread: true },
 ];
 
 const MainChatPage = () => {
@@ -22,8 +23,8 @@ const MainChatPage = () => {
       <View style={styles.chatItem}>
         <Image source={item.image} style={styles.profileImage} />
         <View style={styles.chatDetails}>
-          <Text style={styles.chatName}>{item.name}</Text>
-          <Text style={styles.chatMessage}>{item.message}</Text>
+          <Text style={[styles.chatName, item.unread && styles.unreadName]}>{item.name}</Text>
+          <Text style={[styles.chatMessage, item.unread && styles.unreadMessage]}>{item.message}</Text>
         </View>
       </View>
       <View style={styles.separator} />
@@ -34,7 +35,7 @@ const MainChatPage = () => {
     <ImageBackground source={require('@/assets/images/whitepastel2.png')} style={styles.backgroundImage}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.messagesTab}>Messages <Text style={styles.notificationCount}>(3)</Text></Text>
+          <Text style={styles.messagesTab}>Messages <Text style={styles.notificationCount}>({chats.filter(chat => chat.unread).length})</Text></Text>
           <TextInput
             style={styles.searchBar}
             placeholder="Search"
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: heightPercentageToDP(1),
   },
   notificationCount: {
-    color: '#ff0000',
+    color: '#0000ff', // Blue color for notification count
   },
   searchBar: {
     height: heightPercentageToDP(5),
@@ -122,9 +123,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  unreadName: {
+    color: '#0000ff', // Blue color for unread chat names
+  },
   chatMessage: {
     fontSize: 16,
     color: '#666',
+  },
+  unreadMessage: {
+    fontWeight: 'bold', // Bold font for unread messages
   },
   separator: {
     height: 1,

@@ -13,16 +13,19 @@ import {
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/config/firebaseConfig';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'expo-router';
+import { db, auth } from '@/config/firebaseConfig';
 
 export default function SettingsScreen() {
   const [pushNotifications, setPushNotifications] = useState(false);
   const [name, setName] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     const fetchName = async () => {
       try {
-        const docRef = doc(db, 'users', 'userID'); // Adjust 'userID' as per your Firestore document structure
+        const docRef = doc(db, 'users', auth.currentUser?.uid ?? ''); // Adjust 'userID' as per your Firestore document structure
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
@@ -39,8 +42,15 @@ export default function SettingsScreen() {
     fetchName();
   }, []);
 
-  const handleSignOut = () => {
-    Alert.alert('Signed out', 'You have been signed out successfully.');
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      Alert.alert('Signed out', 'You have been signed out successfully.');
+      router.replace('LoginScreen'); // Navigate to the login screen
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
+    }
   };
 
   const handleDeleteAccount = () => {
