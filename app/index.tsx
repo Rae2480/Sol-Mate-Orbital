@@ -28,7 +28,12 @@ const LoginScreen: React.FC = () => {
           const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
           const userData = userDoc.data();
           if (userData && userData.initialSetupComplete) {
-            router.replace('(tabs)/index'); // Navigate directly to the main tab screen if setup is complete
+            router.replace({
+              pathname: '(tabs)/index',
+              params: {
+                currentUser: auth.currentUser.uid
+              }
+            }); // Navigate directly to the main tab screen if setup is complete
           } else {
             router.replace('LookingFor'); // Navigate to LookingFor screen if setup is not complete
           }
@@ -48,7 +53,6 @@ const LoginScreen: React.FC = () => {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Email"
           placeholder="Email"
           value={email}
           onChangeText={setEmail}

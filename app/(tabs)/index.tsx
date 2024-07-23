@@ -1,43 +1,75 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import {
   Image,
-  StyleSheet,
-  TextInput,
-  View,
-  Text,
-  Button,
-  Alert,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
   ImageBackground,
+  ScrollView,
+  Alert, // Import Alert from React Native
+  TextInput,
+  TouchableOpacity,
+  Text,
+  View,
+  StyleSheet,
+  SafeAreaView,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/config/firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebaseConfig'; // Ensure this path is correct
 import FeatherIcon from 'react-native-vector-icons/Feather';
 
-export default function HomeScreen() {
-  const [name, setName] = useState('');
-  const [age, setAge] = useState(25);
-  const [image, setImage] = useState<string | null>(null);
-  const [introduction, setIntroduction] = useState('');
-  const [editMode, setEditMode] = useState(true);
+interface UserData {
+  name: string;
+  profilePicture: string | null;
+  birthday: Date;
+  bio: string;
+  lookingFor: string;
+}
 
-  const handleSave = async () => {
+const Profile = () => {
+  const navigation = useNavigation();
+  const [userData, setUserData] = React.useState<UserData>({
+    name: '',
+    profilePicture: null,
+    birthday: new Date(),
+    bio: '',
+    lookingFor: ''
+  });
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+
+  const fetchData = async () => {
     try {
-      await setDoc(doc(db, 'users', 'userID'), {
-        name,
-        age,
-        image,
-        introduction,
+      const userId = 'uniqueUserID'; // Replace with the actual user ID
+      const docRef = doc(db, 'userSelections', userId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setUserData(prevState => ({
+          ...prevState,
+          name: data.name,
+          lookingFor: data.selection
+        }));
+      }
+    } catch (e) {
+      console.error('Error fetching document: ', e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleSaveData = async () => {
+    try {
+      const userId = 'uniqueUserID'; // Replace with the actual user ID
+      await setDoc(doc(db, 'userProfiles', userId), {
+        ...userData,
+        timestamp: new Date().toISOString(), // Save as ISO string to avoid object issue
       });
-      setEditMode(false);
-      Alert.alert('Success!', 'Your profile has been updated');
+      Alert.alert('Success', 'Your profile has been saved!');
     } catch (e) {
       console.error('Error adding document: ', e);
-      Alert.alert('Error', 'Failed to save data');
+      Alert.alert('Error', 'Failed to save your profile.');
     }
   };
 
@@ -48,35 +80,22 @@ export default function HomeScreen() {
       return;
     }
 
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [4, 3],
       quality: 1,
     });
 
-    if (!pickerResult.cancelled && pickerResult.assets && pickerResult.assets.length > 0) {
-      setImage(pickerResult.assets[0].uri);
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setUserData({ ...userData, profilePicture: result.assets[0].uri });
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const docRef = doc(db, 'users', 'userID');
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setName(data.name);
-        setAge(data.age);
-        setImage(data.image);
-        setIntroduction(data.introduction);
-        setEditMode(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const handleDateChange = (selectedDate: Date) => {
+    setShowDatePicker(false);
+    setUserData({ ...userData, birthday: selectedDate });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -85,120 +104,80 @@ export default function HomeScreen() {
         style={styles.backgroundImage}
         imageStyle={styles.backgroundImageStyle}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <View style={styles.profileImageContainer}>
-            <View style={styles.profileImage}>
-              <Image
-                source={image ? { uri: image } : require('@/assets/images/placeholderpp.jpg')}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            </View>
-            {editMode && (
-              <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
-                <FeatherIcon name="edit-3" color="#FFF" size={30} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {editMode ? (
-            <View style={styles.editInfoContainer}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Name</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter your name"
-                  value={name}
-                  onChangeText={setName}
-                />
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Age</Text>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={12}
-                  maximumValue={99}
-                  step={1}
-                  value={age}
-                  onValueChange={setAge}
-                />
-                <Text style={styles.sliderValue}>{age}</Text>
-              </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Introduction</Text>
-                <TextInput
-                  style={[styles.textInput, styles.textArea]}
-                  placeholder="Write a brief introduction"
-                  value={introduction}
-                  onChangeText={setIntroduction}
-                  multiline
-                  numberOfLines={4}
-                />
-              </View>
-              <TouchableOpacity onPress={pickImage} style={styles.imagePickerContainer}>
-                <View style={styles.imagePicker}>
-                  <Image
-                    source={image ? { uri: image } : require('@/assets/images/placeholderpp.jpg')}
-                    style={styles.image}
-                  />
-                </View>
-              </TouchableOpacity>
-              <Button title="Save" onPress={handleSave} />
-            </View>
-          ) : (
-            <View style={styles.infoContainer}>
-              <Text style={[styles.text, { fontWeight: '200', fontSize: 36 }]}>
-                {name} <Text style={{ fontSize: 24 }}>({age})</Text>
-              </Text>
-              <Text style={[styles.text, { color: '#AEB5BC', fontSize: 14 }]}>{introduction}</Text>
-              <Button title="Edit" onPress={() => setEditMode(true)} />
-            </View>
-          )}
-
-          <View style={styles.languageLocationContainer}>
-            <TouchableOpacity style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#fe9400' }]}>
-                <FeatherIcon color="#fff" name="question-circle" size={20} />
-              </View>
-              <Text style={styles.rowLabel}>Answered Questionnaire</Text>
-              <View style={styles.rowSpacer} />
-              <FeatherIcon color="#C6C6C6" name="chevron-right" size={20} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.row}>
-              <View style={[styles.rowIcon, { backgroundColor: '#32c759' }]}>
-                <FeatherIcon color="#fff" name="question-circle-o" size={20} />
-              </View>
-              <Text style={styles.rowLabel}>New Questionnaires</Text>
-              <View style={styles.rowSpacer} />
-              <FeatherIcon color="#C6C6C6" name="chevron-right" size={20} />
+            <Image
+              source={userData.profilePicture ? { uri: userData.profilePicture } : require('@/assets/images/placeholderpp.jpg')}
+              style={styles.profileImage}
+              resizeMode="cover"
+            />
+            <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
+              <FeatherIcon name="edit-3" color="#FFF" size={20} />
             </TouchableOpacity>
           </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Hi, {userData.name}!</Text>
+          </View>
+
+          <View style={styles.section}>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
+              <Text style={styles.sectionTitle}>Birthday</Text>
+              <Text>{userData.birthday.toDateString()}</Text>
+            </TouchableOpacity>
+            <DateTimePickerModal
+              isVisible={showDatePicker}
+              mode="date"
+              onConfirm={handleDateChange}
+              onCancel={() => setShowDatePicker(false)}
+              date={userData.birthday}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Bio</Text>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              placeholder="Write a short bio"
+              value={userData.bio}
+              onChangeText={(text) => setUserData({ ...userData, bio: text })}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Looking For:</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('LookingFor')} style={styles.editButton}>
+              <Text style={styles.sectionText}>{userData.lookingFor}</Text>
+              <FeatherIcon name="edit-3" color="blue" size={20} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity onPress={handleSaveData} style={styles.saveProfileButton}>
+            <Text style={styles.saveButtonText}>Save Profile</Text>
+          </TouchableOpacity>
         </ScrollView>
       </ImageBackground>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF',
   },
-  text: {
-    fontFamily: 'HelveticaNeue',
-    color: '#52575D',
+  scrollViewContent: {
+    padding: 20,
   },
-  image: {
+  backgroundImage: {
     flex: 1,
-    height: undefined,
-    width: undefined,
+    resizeMode: 'cover',
+    justifyContent: 'center',
   },
-  subText: {
-    fontSize: 12,
-    color: '#AEB5BC',
-    textTransform: 'uppercase',
-    fontWeight: '500',
+  backgroundImageStyle: {
+    opacity: 0.25,
   },
   profileImageContainer: {
     position: 'relative',
@@ -212,33 +191,41 @@ const styles = StyleSheet.create({
   profileImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 100,
   },
   editIcon: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
+    bottom: 10,
+    right: 10,
     backgroundColor: '#007bff',
-    padding: 8,
-    borderRadius: 20,
+    padding: 6,
+    borderRadius: 15,
     zIndex: 1,
   },
-  infoContainer: {
-    alignSelf: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  editInfoContainer: {
+  section: {
+    marginBottom: 20,
     paddingHorizontal: 24,
-    marginTop: 16,
   },
-  inputContainer: {
-    marginBottom: 16,
-    width: '100%',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
-  label: {
-    marginBottom: 8,
+  sectionText: {
     fontSize: 16,
-    color: '#333',
+    marginBottom: 5,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  datePickerButton: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
   },
   textInput: {
     borderWidth: 1,
@@ -248,68 +235,25 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   textArea: {
-    height: 100,
+    height: 80,
     textAlignVertical: 'top',
   },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderValue: {
-    fontSize: 16,
-    color: '#333',
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  imagePickerContainer: {
+  saveProfileButton: {
+    backgroundColor: '#FF5FB1',
+    padding: 15,
     alignItems: 'center',
+    borderRadius: 5,
   },
-  imagePicker: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    height: 150,
-    width: 150,
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  languageLocationContainer: {
-    marginTop: 24,
-    paddingHorizontal: 24,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-  },
-  rowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 9999,
-    marginRight: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowLabel: {
-    fontSize: 17,
-    fontWeight: '400',
-    color: '#0c0c0c',
-  },
-  rowSpacer: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-  },
-  backgroundImage: {
+  image: {
     flex: 1,
-    resizeMode: 'cover',
-    justifyContent: 'center',
-  },
-  backgroundImageStyle: {
-    opacity: 0.25,
+    height: undefined,
+    width: undefined,
   },
 });
+
+export default Profile;

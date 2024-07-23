@@ -1,25 +1,37 @@
 import * as React from "react";
-import { Image, ImageBackground, Alert } from "react-native";
+import { Image, ImageBackground, ScrollView, Alert } from "react-native";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { heightPercentageToDP, widthPercentageToDP } from "react-native-responsive-screen";
 import RadioButton from "../components/RadioButton";
-import { collection, addDoc } from "firebase/firestore"; 
+import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebaseConfig"; // Adjust the path as needed
 
-const ProjectMate = () => {
+const WorkHabits = () => {
     const navigation = useNavigation();
-    const [selectedOption, setSelectedOption] = React.useState('option1');
-    const [selectedOption2, setSelectedOption2] = React.useState('option1');
-    const [selectedImportant, setSelectedImportant] = React.useState('');
-    const selectedColor = "#f08080"; // Define your selected color
+    const userId = 'uniqueUserID'; // Replace with the actual user ID
+    const [selectedOptions, setSelectedOptions] = React.useState({
+        timeCommitment: 'Less than 5 hours per week',
+        timeCommitmentAccept: [],
+        timeCommitmentImportance: '',
+        workStyle: 'Prefer regular meetings and discussions',
+        workStyleAccept: [],
+        workStyleImportance: '',
+        primarySkillSet: 'Programming (specify languages)',
+        primarySkillSetAccept: [],
+        primarySkillSetImportance: '',
+        experienceLevel: 'Beginner',
+        experienceLevelAccept: [],
+        experienceLevelImportance: '',
+        preferredRole: 'Leader',
+        preferredRoleAccept: [],
+        preferredRoleImportance: ''
+    });
 
     const handleSaveData = async () => {
         try {
-            await addDoc(collection(db, "projectMateResponses"), {
-                workStyle: selectedOption,
-                acceptableWorkStyle: selectedOption2,
-                importance: selectedImportant,
+            await setDoc(doc(db, "workHabitsPreferences", userId), {
+                ...selectedOptions,
                 timestamp: new Date(),
             });
             Alert.alert("Success", "Your responses have been saved!");
@@ -30,95 +42,251 @@ const ProjectMate = () => {
         }
     };
 
+    const fetchData = async () => {
+        try {
+            const docRef = doc(db, "workHabitsPreferences", userId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setSelectedOptions(docSnap.data());
+            }
+        } catch (e) {
+            console.error("Error fetching document: ", e);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleCheckboxChange = (key, value) => {
+        setSelectedOptions(prevState => ({
+            ...prevState,
+            [key]: prevState[key].includes(value) ? prevState[key].filter(item => item !== value) : [...prevState[key], value]
+        }));
+    };
+
     return (
         <ImageBackground source={require("../assets/images/Friends1.png")} style={styles.signUp}>
-            <View style={styles.topContainer}>
-                <Text style={{ color: "white", fontSize: widthPercentageToDP(5) }}>Answering Questions</Text>
-            </View>
-            <View style={styles.container}>
-                <View style={{ alignItems: "center", gap: widthPercentageToDP(2), marginTop: heightPercentageToDP(5) }}>
-                    <Text style={{ fontWeight: "bold", fontSize: widthPercentageToDP(6) }}>What is your preferred work style?</Text>
+            <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                <View style={styles.topContainer}>
+                    <Text style={{ color: "white", fontSize: widthPercentageToDP(5) }}>Answering Questions</Text>
                 </View>
+                <View style={styles.container}>
+                    <Text style={styles.mainTitle}>Work Habits:</Text>
 
-                <View>
-                    <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Your answer:</Text>
+                    <Text style={styles.subTitle}>Time Commitment</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
                     <View style={styles.answerContainer}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "70%" }}>Regular meetings and discussions</Text>
-                            <RadioButton
-                                selected={selectedOption === 'option1'}
-                                onPress={() => setSelectedOption('option1')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "90%" }}>Working independently with occasional check-ins</Text>
-                            <RadioButton
-                                selected={selectedOption === 'option2'}
-                                onPress={() => setSelectedOption('option2')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
+                        {['Less than 5 hours per week', '5-10 hours per week', '10-15 hours per week', 'More than 15 hours per week'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.timeCommitment === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, timeCommitment: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
                     </View>
-                </View>
-
-                <View>
-                    <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Answer you’ll accept:</Text>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
                     <View style={styles.acceptableAnswerContainer}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "70%" }}>Regular meetings and discussions</Text>
-                            <RadioButton
-                                selected={selectedOption2 === 'option1'}
-                                onPress={() => setSelectedOption2('option1')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "90%" }}>Working independently with occasional check-ins</Text>
-                            <RadioButton
-                                selected={selectedOption2 === 'option2'}
-                                onPress={() => setSelectedOption2('option2')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                            <Text style={{ fontSize: 17, width: "70%" }}>Both</Text>
-                            <RadioButton
-                                selected={selectedOption2 === 'both'}
-                                onPress={() => setSelectedOption2('both')}
-                                selectedColor={selectedColor} // Pass selectedColor prop
-                            />
-                        </View>
+                        {['Less than 5 hours per week', '5-10 hours per week', '10-15 hours per week', 'More than 15 hours per week'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.timeCommitmentAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('timeCommitmentAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
                     </View>
-                </View>
-
-                <View style={{ gap: 2 }}>
-                    <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>Importance:</Text>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
                     <View style={styles.importantButtonContainer}>
-                        <TouchableOpacity onPress={() => setSelectedImportant("A little")} style={[styles.importButton, { backgroundColor: selectedImportant === "A little" ? "#f08080" : "transparent" }]}>
-                            <Text style={{ color: "#4f000b" }}>A little</Text>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, timeCommitmentImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.timeCommitmentImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.timeCommitmentImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Work Style</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
+                    <View style={styles.answerContainer}>
+                        {['Prefer regular meetings and discussions', 'Prefer working independently with occasional check-ins', 'Prefer a mix of both'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.workStyle === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, workStyle: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Prefer regular meetings and discussions', 'Prefer working independently with occasional check-ins', 'Prefer a mix of both'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.workStyleAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('workStyleAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, workStyleImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.workStyleImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.workStyleImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Skills and Expertise</Text>
+                    <Text style={styles.sectionTitle}>Primary Skill Set</Text>
+                    <View style={styles.answerContainer}>
+                        {['Programming (specify languages)', 'Design (UI/UX)', 'Project Management', 'Other (specify)'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.primarySkillSet === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, primarySkillSet: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Programming (specify languages)', 'Design (UI/UX)', 'Project Management', 'Other (specify)'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.primarySkillSetAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('primarySkillSetAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, primarySkillSetImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.primarySkillSetImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.primarySkillSetImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Experience Level</Text>
+                    <Text style={styles.sectionTitle}>Your answer:</Text>
+                    <View style={styles.answerContainer}>
+                        {['Beginner', 'Intermediate', 'Advanced'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.experienceLevel === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, experienceLevel: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Beginner', 'Intermediate', 'Advanced'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.experienceLevelAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('experienceLevelAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, experienceLevelImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.experienceLevelImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.experienceLevelImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <Text style={styles.subTitle}>Project Preferences</Text>
+                    <Text style={styles.sectionTitle}>Preferred Role</Text>
+                    <View style={styles.answerContainer}>
+                        {['Leader', 'Collaborator', 'Supporter'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.preferredRole === option}
+                                    onPress={() => setSelectedOptions(prevState => ({ ...prevState, preferredRole: option }))}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Answer you'll accept:</Text>
+                    <View style={styles.acceptableAnswerContainer}>
+                        {['Leader', 'Collaborator', 'Supporter'].map(option => (
+                            <View key={option} style={styles.optionRow}>
+                                <Text>{option}</Text>
+                                <RadioButton
+                                    selected={selectedOptions.preferredRoleAccept.includes(option)}
+                                    onPress={() => handleCheckboxChange('preferredRoleAccept', option)}
+                                    selectedColor="#f08080"
+                                />
+                            </View>
+                        ))}
+                    </View>
+                    <Text style={styles.sectionTitle}>Importance:</Text>
+                    <View style={styles.importantButtonContainer}>
+                        {['Important', 'Somewhat important', 'Not important'].map(option => (
+                            <TouchableOpacity
+                                key={option}
+                                onPress={() => setSelectedOptions(prevState => ({ ...prevState, preferredRoleImportance: option }))}
+                                style={[styles.importButton, { backgroundColor: selectedOptions.preferredRoleImportance === option ? "#f08080" : "transparent" }]}
+                            >
+                                <Text style={{ color: selectedOptions.preferredRoleImportance === option ? "#fff" : "#4f000b" }}>{option}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                    
+                    <View style={styles.bottomButtonContainer}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={{ gap: 5, alignItems: "center" }}>
+                            <Image style={styles.backIcon} source={require("../assets/images/back.png")} />
+                            <Text style={{ fontSize: widthPercentageToDP(4) }}>Previous</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setSelectedImportant("Somewhat")} style={[styles.importButton, { backgroundColor: selectedImportant === "Somewhat" ? "#f08080" : "transparent" }]}>
-                            <Text style={{ color: "#4f000b" }}>Somewhat</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setSelectedImportant("Very")} style={[styles.importButton, { backgroundColor: selectedImportant === "Very" ? "#f08080" : "transparent" }]}>
-                            <Text style={{ color: "#4f000b" }}>Very</Text>
+
+                        <TouchableOpacity onPress={handleSaveData} activeOpacity={0.7} style={{ gap: 5 }}>
+                            <Image style={styles.forwardIcon} source={require("../assets/images/forward.png")} />
+                            <Text style={{ fontSize: widthPercentageToDP(4) }}>Next</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-
-                <View style={styles.bottomButtonContainer}>
-                    <TouchableOpacity onPress={() => navigation.navigate("LookingFor")} activeOpacity={0.7} style={{ gap: 5, alignItems: "center" }}>
-                        <Image style={styles.backIcon} source={require("../assets/images/back.png")} />
-                        <Text style={{ fontSize: widthPercentageToDP(4) }}>Previous</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={handleSaveData} activeOpacity={0.7} style={{ gap: 5 }}>
-                        <Image style={styles.forwardIcon} source={require("../assets/images/forward.png")} />
-                        <Text style={{ fontSize: widthPercentageToDP(4) }}>Skip</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+            </ScrollView>
         </ImageBackground>
     );
 };
@@ -135,83 +303,102 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         backgroundColor: "white",
     },
-    answerContainer: {
-        gap: 5,
-        paddingHorizontal: widthPercentageToDP(7),
-        paddingVertical: widthPercentageToDP(3.5),
-        height: heightPercentageToDP(14),
-        borderWidth: 2,
-        borderColor: "#f08080",
-        borderRadius: 21,
-        backgroundColor: "#fbc4ab",
-        shadowColor: "#9B004F",
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.45,
-        shadowRadius: 2.50,
-        elevation: 3,
-    },
-    acceptableAnswerContainer: {
-        gap: 5,
-        paddingHorizontal: widthPercentageToDP(5),
-        paddingVertical: widthPercentageToDP(3.5),
-        height: heightPercentageToDP(17), 
-        borderWidth: 2,
-        borderColor: "#f08080",
-        borderRadius: 21,
-        backgroundColor: "#fbc4ab",
-        shadowColor: "#9B004F",
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.45,
-        shadowRadius: 2.50,
-        elevation: 3,
+    scrollViewContent: {
+        paddingBottom: 20,
     },
     topContainer: {
-        height: heightPercentageToDP(10),
-        backgroundColor: "#FF8DB3",
+        height: heightPercentageToDP(15),
+        backgroundColor: "#FF5FB1",
         alignItems: "center",
         justifyContent: "flex-end",
-        paddingBottom: 5,
+        paddingBottom: 15,
     },
     container: {
-        gap: widthPercentageToDP(10),
+        padding: widthPercentageToDP(5),
         backgroundColor: "rgba(244,244,244,0.9)",
-        height: heightPercentageToDP(80),
         borderRadius: widthPercentageToDP(5),
-        marginTop: heightPercentageToDP(2),
         marginHorizontal: widthPercentageToDP(5),
-        paddingHorizontal: widthPercentageToDP(5),
+        marginTop: heightPercentageToDP(2),
+    },
+    mainTitle: {
+        fontSize: widthPercentageToDP(10),
+        fontFamily: 'Montserrat',
+        fontWeight: "bold",
+        marginBottom: heightPercentageToDP(2),
+    },
+    subTitle: {
+        fontSize: widthPercentageToDP(6),
+        fontWeight: "bold",
+        marginVertical: heightPercentageToDP(2),
     },
     sectionTitle: {
-        fontSize: 17,
+        fontSize: widthPercentageToDP(5),
+        marginVertical: heightPercentageToDP(1),
+    },
+    answerContainer: {
+        gap: 15,
+        paddingHorizontal: widthPercentageToDP(5),
+        paddingVertical: widthPercentageToDP(3.5),
+        borderWidth: 2,
+        borderColor: "#fbc4ab",
+        borderRadius: 21,
+        backgroundColor: "#FFDAB9",
+        shadowColor: "#9B004F",
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.45,
+        shadowRadius: 2.50,
+        elevation: 3,
+        marginBottom: heightPercentageToDP(2),
+    },
+    acceptableAnswerContainer: {
+        gap: 15,
+        paddingHorizontal: widthPercentageToDP(5),
+        paddingVertical: widthPercentageToDP(3.5),
+        borderWidth: 2,
+        borderColor: "#F08080",
+        borderRadius: 21,
+        backgroundColor: "#fbc4ab",
+        shadowColor: "#9B004F",
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.45,
+        shadowRadius: 2.50,
+        elevation: 3,
+        marginBottom: heightPercentageToDP(2),
+    },
+    optionRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
     },
     importantButtonContainer: {
-        backgroundColor: "#fbc4ab",
+        backgroundColor: "#FF8DB3",
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        borderColor: "#F08080",
+        borderColor: "#CF297E",
         borderWidth: 2,
         height: heightPercentageToDP(5),
+        marginBottom: heightPercentageToDP(2),
     },
     importButton: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        borderRightColor: "#F08080",
+        borderRightColor: "#CF297E",
         borderRightWidth: 1,
         height: "100%",
     },
     bottomButtonContainer: {
-        marginTop: heightPercentageToDP(-3.5),
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
+        marginTop: heightPercentageToDP(2),
     },
     backIcon: {
         height: 18,
@@ -225,4 +412,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ProjectMate;
+export default WorkHabits;
