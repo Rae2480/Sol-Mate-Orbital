@@ -1,49 +1,107 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Modal, Alert, ImageBackground } from 'react-native';
+import { getDocs, collection } from 'firebase/firestore';
+import { db } from '@/config/firebaseConfig';
+import { calculateCompatibility, sortMatches } from '@/utils/algorithm';
+
+interface Preferences {
+  dailyRoutine: string;
+  dailyRoutineAccept: string[];
+  dailyRoutineImportance: 'Important' | 'Somewhat important' | 'Not important';
+  cleanliness: string;
+  cleanlinessAccept: string[];
+  cleanlinessImportance: 'Important' | 'Somewhat important' | 'Not important';
+  guestFrequency: string;
+  guestFrequencyAccept: string[];
+  guestFrequencyImportance: 'Important' | 'Somewhat important' | 'Not important';
+  noiseSensitivity: string;
+  noiseSensitivityAccept: string[];
+  noiseSensitivityImportance: 'Important' | 'Somewhat important' | 'Not important';
+  privacyNeeds: string;
+  privacyNeedsAccept: string[];
+  privacyNeedsImportance: 'Important' | 'Somewhat important' | 'Not important';
+  timeCommitment?: string;
+  timeCommitmentAccept?: string[];
+  timeCommitmentImportance?: 'Important' | 'Somewhat important' | 'Not important';
+  workStyle?: string;
+  workStyleAccept?: string[];
+  workStyleImportance?: 'Important' | 'Somewhat important' | 'Not important';
+  primarySkillSet?: string;
+  primarySkillSetAccept?: string[];
+  primarySkillSetImportance?: 'Important' | 'Somewhat important' | 'Not important';
+  experienceLevel?: string;
+  experienceLevelAccept?: string[];
+  experienceLevelImportance?: 'Important' | 'Somewhat important' | 'Not important';
+  preferredRole?: string;
+  preferredRoleAccept?: string[];
+  preferredRoleImportance?: 'Important' | 'Somewhat important' | 'Not important';
+}
 
 interface User {
   id: string;
   name: string;
   bio: string;
   photo: string;
-  compatibility: string;
+  preferences: Preferences;
 }
 
-const hardcodedUsers: User[] = [
-  {
-    id: '1',
-    name: 'Adam',
-    bio: 'Loves hiking and outdoor activities.',
-    photo: 'https://via.placeholder.com/150',
-    compatibility: 'High',
-  },
-  {
-    id: '2',
-    name: 'Bob',
-    bio: 'Enjoys cooking and reading.',
-    photo: 'https://via.placeholder.com/150',
-    compatibility: 'Medium',
-  },
-  {
-    id: '3',
-    name: 'Charlie',
-    bio: 'Passionate about technology and programming.',
-    photo: 'https://via.placeholder.com/150',
-    compatibility: 'Low',
-  },
-  {
-    id: '4',
-    name: 'Denyse',
-    bio: 'Loves painting and arts.',
-    photo: 'https://via.placeholder.com/150',
-    compatibility: 'High',
-  },
-];
-
 const MatchingPage = () => {
-  const [matches, setMatches] = useState<User[]>(hardcodedUsers);
+  const [matches, setMatches] = useState<User[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<User | null>(null);
+
+  const currentUser: User = {
+    id: 'currentUserId',
+    name: 'CurrentUser',
+    bio: 'Your bio here',
+    photo: 'https://via.placeholder.com/150',
+    preferences: {
+      dailyRoutine: 'Mid-morning riser (8 AM - 10 AM)',
+      dailyRoutineAccept: ['Early riser', 'Mid-morning riser'],
+      dailyRoutineImportance: 'Important',
+      cleanliness: 'Moderately important, I like things to be tidy',
+      cleanlinessAccept: ['Very important', 'Moderately important'],
+      cleanlinessImportance: 'Important',
+      guestFrequency: 'Occasionally (once or twice a month)',
+      guestFrequencyAccept: ['Occasionally', 'Rarely'],
+      guestFrequencyImportance: 'Somewhat important',
+      noiseSensitivity: 'Moderately sensitive, occasional noise is okay',
+      noiseSensitivityAccept: ['Very sensitive', 'Moderately sensitive'],
+      noiseSensitivityImportance: 'Somewhat important',
+      privacyNeeds: 'Moderate, I enjoy socializing but need some alone time',
+      privacyNeedsAccept: ['A lot', 'Moderate'],
+      privacyNeedsImportance: 'Important',
+      timeCommitment: '5-10 hours per week',
+      timeCommitmentAccept: ['Less than 5 hours per week', '5-10 hours per week'],
+      timeCommitmentImportance: 'Important',
+      workStyle: 'Prefer regular meetings and discussions',
+      workStyleAccept: ['Prefer regular meetings and discussions', 'Prefer working independently with occasional check-ins'],
+      workStyleImportance: 'Important',
+      primarySkillSet: 'Programming',
+      primarySkillSetAccept: ['Programming', 'Design'],
+      primarySkillSetImportance: 'Important',
+      experienceLevel: 'Intermediate',
+      experienceLevelAccept: ['Beginner', 'Intermediate'],
+      experienceLevelImportance: 'Important',
+      preferredRole: 'Leader',
+      preferredRoleAccept: ['Leader', 'Collaborator'],
+      preferredRoleImportance: 'Important'
+    }
+  };
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const users: User[] = [];
+      querySnapshot.forEach((doc) => {
+        users.push({ id: doc.id, ...doc.data() } as User);
+      });
+      const sortedMatches = sortMatches(currentUser, users);
+      setMatches(sortedMatches);
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleYes = (match: User) => {
     setSelectedMatch(match);
@@ -63,7 +121,7 @@ const MatchingPage = () => {
   };
 
   const handleReload = () => {
-    setMatches(hardcodedUsers);
+    setMatches(sortMatches(currentUser, matches));
   };
 
   if (matches.length === 0) {

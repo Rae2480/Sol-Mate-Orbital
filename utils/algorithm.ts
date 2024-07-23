@@ -14,6 +14,22 @@ interface Preferences {
     privacyNeeds: string;
     privacyNeedsAccept: string[];
     privacyNeedsImportance: 'Important' | 'Somewhat important' | 'Not important';
+    // Add the fields for WorkHabits
+    timeCommitment?: string;
+    timeCommitmentAccept?: string[];
+    timeCommitmentImportance?: 'Important' | 'Somewhat important' | 'Not important';
+    workStyle?: string;
+    workStyleAccept?: string[];
+    workStyleImportance?: 'Important' | 'Somewhat important' | 'Not important';
+    primarySkillSet?: string;
+    primarySkillSetAccept?: string[];
+    primarySkillSetImportance?: 'Important' | 'Somewhat important' | 'Not important';
+    experienceLevel?: string;
+    experienceLevelAccept?: string[];
+    experienceLevelImportance?: 'Important' | 'Somewhat important' | 'Not important';
+    preferredRole?: string;
+    preferredRoleAccept?: string[];
+    preferredRoleImportance?: 'Important' | 'Somewhat important' | 'Not important';
 }
 
 interface User {
@@ -36,33 +52,41 @@ export function calculateCompatibility(user1: Preferences, user2: Preferences): 
         'cleanliness',
         'guestFrequency',
         'noiseSensitivity',
-        'privacyNeeds'
+        'privacyNeeds',
+        // Include WorkHabits fields
+        'timeCommitment',
+        'workStyle',
+        'primarySkillSet',
+        'experienceLevel',
+        'preferredRole'
     ];
 
     let totalScore = 0;
     let maxScore = 0;
 
     questions.forEach((question) => {
-        const user1Answer = user1[question as keyof Preferences] as string;
-        const user1AcceptableAnswers = user1[`${question}Accept` as keyof Preferences] as string[];
-        const user1Importance = user1[`${question}Importance` as keyof Preferences] as 'Important' | 'Somewhat important' | 'Not important';
+        if (user1[question as keyof Preferences] !== undefined && user2[question as keyof Preferences] !== undefined) {
+            const user1Answer = user1[question as keyof Preferences] as string;
+            const user1AcceptableAnswers = user1[`${question}Accept` as keyof Preferences] as string[];
+            const user1Importance = user1[`${question}Importance` as keyof Preferences] as 'Important' | 'Somewhat important' | 'Not important';
 
-        const user2Answer = user2[question as keyof Preferences] as string;
-        const user2AcceptableAnswers = user2[`${question}Accept` as keyof Preferences] as string[];
-        const user2Importance = user2[`${question}Importance` as keyof Preferences] as 'Important' | 'Somewhat important' | 'Not important';
+            const user2Answer = user2[question as keyof Preferences] as string;
+            const user2AcceptableAnswers = user2[`${question}Accept` as keyof Preferences] as string[];
+            const user2Importance = user2[`${question}Importance` as keyof Preferences] as 'Important' | 'Somewhat important' | 'Not important';
 
-        // Calculate points for user1
-        if (user2AcceptableAnswers.includes(user1Answer)) {
-            totalScore += importanceScores[user2Importance];
+            // Calculate points for user1
+            if (user2AcceptableAnswers.includes(user1Answer)) {
+                totalScore += importanceScores[user2Importance];
+            }
+
+            // Calculate points for user2
+            if (user1AcceptableAnswers.includes(user2Answer)) {
+                totalScore += importanceScores[user1Importance];
+            }
+
+            // Max score is the highest possible score
+            maxScore += 2 * 3; // 2 users, each can give up to 3 points per question
         }
-
-        // Calculate points for user2
-        if (user1AcceptableAnswers.includes(user2Answer)) {
-            totalScore += importanceScores[user1Importance];
-        }
-
-        // Max score is the highest possible score
-        maxScore += 2 * 3; // 2 users, each can give up to 3 points per question
     });
 
     return (totalScore / maxScore) * 100; // Return percentage compatibility
