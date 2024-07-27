@@ -185,5 +185,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
 });
+<<<<<<< HEAD
 //test
+=======
+
+>>>>>>> 03bd2272fc45505a405087740bf4f94d9c3a4677
 export default MainChatPage;
