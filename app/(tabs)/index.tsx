@@ -3,7 +3,7 @@ import {
   Image,
   ImageBackground,
   ScrollView,
-  Alert, // Import Alert from React Native
+  Alert,
   TextInput,
   TouchableOpacity,
   Text,
@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/config/firebaseConfig'; // Ensure this path is correct
+import { db } from '@/config/firebaseConfig';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 
 interface UserData {
@@ -64,7 +64,7 @@ const Profile = () => {
       const userId = 'uniqueUserID'; // Replace with the actual user ID
       await setDoc(doc(db, 'userProfiles', userId), {
         ...userData,
-        timestamp: new Date().toISOString(), // Save as ISO string to avoid object issue
+        timestamp: new Date().toISOString(),
       });
       Alert.alert('Success', 'Your profile has been saved!');
     } catch (e) {
@@ -95,6 +95,10 @@ const Profile = () => {
   const handleDateChange = (selectedDate: Date) => {
     setShowDatePicker(false);
     setUserData({ ...userData, birthday: selectedDate });
+  };
+
+  const navigateToAdditionalQuestions = () => {
+    navigation.navigate('AdditionalQuestionnaireScreen', { userType: userData.lookingFor });
   };
 
   return (
@@ -153,6 +157,10 @@ const Profile = () => {
               <FeatherIcon name="edit-3" color="blue" size={20} />
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity onPress={navigateToAdditionalQuestions} style={styles.additionalQuestionsButton}>
+            <Text style={styles.additionalQuestionsButtonText}>Answer Additional Questions</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity onPress={handleSaveData} style={styles.saveProfileButton}>
             <Text style={styles.saveButtonText}>Save Profile</Text>
@@ -249,10 +257,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  image: {
-    flex: 1,
-    height: undefined,
-    width: undefined,
+  additionalQuestionsButton: {
+    backgroundColor: '#007bff',
+    padding: 15,
+    alignItems: 'center',
+    borderRadius: 5,
+    marginBottom: 20,
+  },
+  additionalQuestionsButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

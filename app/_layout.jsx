@@ -42,6 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="ChatPage" />
         <Stack.Screen name="ReportUserScreen" />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen name="AdditionalQuestionnaireScreen" />
       </Stack>
     </ThemeProvider>
   );
