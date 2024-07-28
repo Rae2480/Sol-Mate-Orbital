@@ -24,6 +24,8 @@ interface UserData {
   birthday: Date;
   bio: string;
   lookingFor: string;
+  major: string;
+  gender: string;
 }
 
 const Profile = () => {
@@ -33,7 +35,9 @@ const Profile = () => {
     profilePicture: null,
     birthday: new Date(),
     bio: '',
-    lookingFor: ''
+    lookingFor: '',
+    major: '',
+    gender: ''
   });
   const [showDatePicker, setShowDatePicker] = React.useState(false);
 
@@ -47,7 +51,9 @@ const Profile = () => {
         setUserData(prevState => ({
           ...prevState,
           name: data.name,
-          lookingFor: data.selection
+          lookingFor: data.selection,
+          major: data.major || '',
+          gender: data.gender || ''
         }));
       }
     } catch (e) {
@@ -121,10 +127,6 @@ const Profile = () => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hi, {userData.name}!</Text>
-          </View>
-
-          <View style={styles.section}>
             <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerButton}>
               <Text style={styles.sectionTitle}>Birthday</Text>
               <Text>{userData.birthday.toDateString()}</Text>
@@ -135,6 +137,54 @@ const Profile = () => {
               onConfirm={handleDateChange}
               onCancel={() => setShowDatePicker(false)}
               date={userData.birthday}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Gender</Text>
+            <View style={styles.genderContainer}>
+              <TouchableOpacity
+                onPress={() => setUserData({ ...userData, gender: 'Male' })}
+                style={[
+                  styles.genderOption,
+                  userData.gender === 'Male' && styles.genderOptionSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.genderOptionText,
+                    userData.gender === 'Male' && styles.genderOptionTextSelected,
+                  ]}
+                >
+                  Male
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setUserData({ ...userData, gender: 'Female' })}
+                style={[
+                  styles.genderOption,
+                  userData.gender === 'Female' && styles.genderOptionSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.genderOptionText,
+                    userData.gender === 'Female' && styles.genderOptionTextSelected,
+                  ]}
+                >
+                  Female
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Major</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Enter your major"
+              value={userData.major}
+              onChangeText={(text) => setUserData({ ...userData, major: text })}
             />
           </View>
 
@@ -268,6 +318,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  genderOption: {
+    flex: 1,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    backgroundColor: '#f0f0f0', // Add background color for unselected state
+  },
+  genderOptionSelected: {
+    backgroundColor: '#007bff',
+  },
+  genderOptionText: {
+    color: '#000', // Default text color for unselected state
+    fontWeight: 'bold',
+  },
+  genderOptionTextSelected: {
+    color: '#fff', // Text color for selected state
   },
 });
 
